@@ -1,0 +1,30 @@
+# SECRETS_PER_POD specifies the number of secrets to mount in each pod
+{{$SECRETS_PER_POD := 100 }}
+
+---
+global:
+  writeToFile: false
+  metricsDirectory: collected-metrics
+  indexerConfig:
+    enabled: false
+
+jobs:
+  - name: apf-watch
+    jobIterations: 100
+    qps: 100
+    burst: 100
+    namespacedIterations: false
+    namespace: apf-watch
+    cleanup: true
+    podWait: false
+    waitFor: []
+    waitWhenFinished: true
+    objects:
+
+      - objectTemplate: templates/pod.yml
+        replicas: 1
+        inputVars:
+          SECRETS_PER_POD: {{ $SECRETS_PER_POD }}
+
+      - objectTemplate: templates/secret.yml
+        replicas: {{ $SECRETS_PER_POD }}

@@ -1,0 +1,29 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: apf-watch-{{.Iteration}}-{{.Replica}}
+  labels:
+    name: apf-watch
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  containers:
+  - name: apf-watch
+    image: gcr.io/google_containers/pause-amd64:3.0
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: false
+    volumeMounts:
+{{ range $pos, $val := sequence 1 .SECRETS_PER_POD }}   
+    - name: secret-{{ $val }}
+      mountPath: /mnt/secret-{{ $val }}
+{{ end }}
+  volumes:
+{{ range $pos, $val := sequence 1 .SECRETS_PER_POD }}   
+  - name: secret-{{ $val }}
+    secret:
+      secretName: top-secret-{{ $.Iteration }}-{{ $val }}
+{{ end }}
