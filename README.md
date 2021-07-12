@@ -12,6 +12,7 @@ The experiment was performed in a AWS based cluster with the following node size
 
 ## Considerations
 
+- OpenShift version was 4.9.0-0.nightly-2021-07-04-140102
 - Kubelet's FlowSchema is `system-nodes`
 - This FlowSchema is configured with PriorityLevel `system` which has `assuredConcurrencyShares` set to 30. This means that ACV (Assured concurrency value) is roughly ~600 in each instance (ceil(SCL * ACS(l) / (sum[priority levels k] ACS(k)))) (where SCL is 3000), this value has resulted in being very high to the deployed master nodes.
 - In OpenShift default max-requests-inflight and max-mutating-requests-inflight are configured to 3000 and 1000 respectively
@@ -41,7 +42,7 @@ mv /etc/kubernetes/manifests/kube-apiserver-pod.yaml ~ && pkill -9 kube-apiserve
 
 - Verify that the remaining kube-apiserver instance enters in a crashloop state as is not able to handle such amount or requests.
 
-The previous behaviour is considerably mitigated after enabling p&f and tuning some kube-apiserver flags.
+The previous behaviour is considerably mitigated after enabling p&f, decreasing AssuredConcurrencyShares in *system* to 1, and configuring max-requests-inflight and max-mutating-requests-inflight to 750 and 250 respectively.
 
 ## Results
 
@@ -51,12 +52,12 @@ As soon as we kill the second instance, the remaining went down. The API remaine
 
 <img src="pictures/apf-off-1.png">
 
-https://snapshot.raintank.io/dashboard/snapshot/vC5R3Op03Gr4R13kffSTQgiPdV2vkDko
+Second attempt: https://snapshot.raintank.io/dashboard/snapshot/vC5R3Op03Gr4R13kffSTQgiPdV2vkDko
 The instance .62 entered in crashloop state until one of the other instances came back.
 
 <img src="pictures/apf-off-2.png">
 
-- 150 namespaces with 10 pods each, mounting 200 secrets: P&F on. AssuredConcurrencyShares in *system* 1. max-requests-inflight and max-mutating-requests-inflight: 750 and 250 respectively
+- 150 namespaces with 10 pods each, mounting 200 secrets: P&F on. AssuredConcurrencyShares in *system* 1. max-requests-inflight and max-mutating-requests-inflight: 750 and 250 respectively:
 https://snapshot.raintank.io/dashboard/snapshot/Unb4VtK3XHDyUkH5eUrPvj22Z1kJJkTI
 
 This test was repeated 3 times to verify the results are stable. We can see some queueing and rejections each time we kill the instance holding most of the watchers.
