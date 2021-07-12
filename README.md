@@ -1,19 +1,19 @@
 # API priority & Fairness watch experiments
 
 The content of this repository is meant to validate the new P&F for WATCH requests feature recently [merged in vanilla K8S](https://github.com/openshift/kubernetes/pull/783) and OpenShift.
-The procedure to test this feature consists of deploying a series of pods each of them mounting a high number of secrets (At least 100), the mounting of this secrets leads to kubelet to create a watcher against the kube-apiserver.
+The procedure to test this feature consists of deploying a series of pods each of them mounting a high number of secrets (200 in this case), the mounting of this secrets leads to kubelet to create a watcher against the API.
 
 ## Cluster sizing
 
 The experiment was performed in a AWS based cluster with the following node sizes:
 
-3x m5.2xlarge (8 vCPU + 32 GiB)
-15x m5.xlarge worker nodes: (4 vCPU + 16 GiB): The number of worker nodes is important due to client-side throttling.
+- 3x m5.2xlarge (8 vCPU + 32 GiB)
+- 15x m5.xlarge worker nodes: (4 vCPU + 16 GiB): The number of worker nodes is important due to client-side throttling.
 
 ## Considerations
 
 - Kubelet's FlowSchema is `system-nodes`
-- This FlowSchema is configured with PriorityLevel `system` which has `assuredConcurrencyShares` set to 30. This means that ACV (Assured concurrency value) is roughly ~600 in each instance (ceil(SCL * ACS(l) / (sum[priority levels k] ACS(k)))) (where SCL is 3000)
+- This FlowSchema is configured with PriorityLevel `system` which has `assuredConcurrencyShares` set to 30. This means that ACV (Assured concurrency value) is roughly ~600 in each instance (ceil(SCL * ACS(l) / (sum[priority levels k] ACS(k)))) (where SCL is 3000), this value has resulted in being very high to the deployed master nodes.
 - In OpenShift default max-requests-inflight and max-mutating-requests-inflight are configured to 3000 and 1000 respectively
 - Kubelet's QPS/Burst values are set to 50/100. This leads that a 15 worker node cluster can generate 750 rps at most due to client throttling. (Note the kubelet instances running in the control plane)
 
